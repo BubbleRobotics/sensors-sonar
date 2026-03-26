@@ -20,7 +20,13 @@ public:
     void append(const uint8_t* data, size_t len);
 
     bool getNextPacket(std::vector<uint8_t>& packet);
+    void reset();
+    size_t bufferedSize() const;
+    size_t checksumFailures() const;
+    size_t syncLosses() const;
 
 private:
     std::vector<uint8_t> buffer_;
+    size_t checksum_failures_ = 0;
+    size_t sync_losses_ = 0;
 };
