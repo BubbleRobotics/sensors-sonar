@@ -44,7 +44,6 @@ private:
     double sos_mps_;
     int gain_index_;
     int msec_per_ping_;
-    bool enable_yz_point_data_;
     bool enable_atof_data_;
     int n_range_steps_;
     double pulse_len_steps_;

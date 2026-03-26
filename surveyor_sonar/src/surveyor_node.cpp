@@ -82,7 +82,6 @@ SurveyorNode::SurveyorNode()
   sos_mps_(this->declare_parameter("sos_mps", 1500.0)),
   gain_index_(this->declare_parameter("gain_index", -1)),
   msec_per_ping_(this->declare_parameter("msec_per_ping", 100)),
-  enable_yz_point_data_(this->declare_parameter("enable_yz_point_data", false)),
   enable_atof_data_(this->declare_parameter("enable_atof_data", true)),
   n_range_steps_(this->declare_parameter("n_range_steps", 400)),
   pulse_len_steps_(this->declare_parameter("pulse_len_steps", 1.5)),
@@ -356,7 +355,7 @@ bool SurveyorNode::sendPingParameters(bool ping_enable)
     appendU8(payload, ping_enable ? 1U : 0U);
     appendU8(payload, 0);     // enable channel data
     appendU8(payload, 0);     // reserved raw data
-    appendU8(payload, enable_yz_point_data_ ? 1U : 0U);
+    appendU8(payload, 0);     // disable YZ point data
     appendU8(payload, enable_atof_data_ ? 1U : 0U);
     appendI32LE(payload, 240000);
     appendU16LE(payload, static_cast<uint16_t>(n_range_steps_));
@@ -364,14 +363,13 @@ bool SurveyorNode::sendPingParameters(bool ping_enable)
     appendFloatLE(payload, static_cast<float>(pulse_len_steps_));
 
     RCLCPP_INFO(this->get_logger(),
-                "Sending SET_PING_PARAMETERS: ping_enable=%s start_mm=%d end_mm=%d sos_mps=%.1f gain_index=%d msec_per_ping=%d yz=%s atof=%s n_range_steps=%d pulse_len_steps=%.2f",
+                "Sending SET_PING_PARAMETERS: ping_enable=%s start_mm=%d end_mm=%d sos_mps=%.1f gain_index=%d msec_per_ping=%d atof=%s n_range_steps=%d pulse_len_steps=%.2f",
                 ping_enable ? "true" : "false",
                 start_mm_,
                 end_mm_,
                 sos_mps_,
                 gain_index_,
                 msec_per_ping_,
-                enable_yz_point_data_ ? "true" : "false",
                 enable_atof_data_ ? "true" : "false",
                 n_range_steps_,
                 pulse_len_steps_);
@@ -485,11 +483,11 @@ void SurveyorNode::readSocket()
         }
         else
         {
-            if (last_msg_id_ != 3011 && last_msg_id_ != 3012)
+            if (last_msg_id_ != 3012)
             {
                 RCLCPP_INFO_THROTTLE(
                     this->get_logger(), *this->get_clock(), 2000,
-                    "Ignoring non-point Surveyor packet: msg_id=%u payload_len=%u packets=%zu published=%zu",
+                    "Ignoring non-ATOF Surveyor packet: msg_id=%u payload_len=%u packets=%zu published=%zu",
                     last_msg_id_,
                     last_payload_len_,
                     packets_seen_,
