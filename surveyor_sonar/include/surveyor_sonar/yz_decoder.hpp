@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <cstdint>
+#include <iostream>
 
 /**
  * @brief Single sonar point in YZ plane

@@ -33,10 +33,14 @@ void SurveyorNode::connectSocket()
     inet_pton(AF_INET, ip_.c_str(), &server.sin_addr);
 
     connect(sock_, (sockaddr*)&server, sizeof(server));
+
+    
+    RCLCPP_INFO(this->get_logger(), "Connected");
 }
 
 void SurveyorNode::readSocket()
 {
+    RCLCPP_INFO(this->get_logger(), "Reading Socket");
     uint8_t buffer[4096];
     ssize_t len = recv(sock_, buffer, sizeof(buffer), 0);
 
@@ -51,6 +55,7 @@ void SurveyorNode::readSocket()
     {
         std::vector<YZPoint> points;
 
+        RCLCPP_INFO(this->get_logger(), "Parsing");
         if (parseYZ(packet, points))
         {
             publishYZ(points);
@@ -60,6 +65,7 @@ void SurveyorNode::readSocket()
 
 void SurveyorNode::publishYZ(const std::vector<YZPoint>& points)
 {
+    RCLCPP_INFO(this->get_logger(), "Publishing");
     sensor_msgs::msg::PointCloud2 cloud;
 
     cloud.header.stamp = now();
