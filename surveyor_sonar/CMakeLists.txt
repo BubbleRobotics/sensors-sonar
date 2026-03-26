@@ -9,6 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 
 include_directories(include)
 
@@ -21,6 +22,7 @@ add_executable(surveyor_node
 ament_target_dependencies(surveyor_node
   rclcpp
   sensor_msgs
+  std_msgs
 )
 
 install(TARGETS surveyor_node
@@ -28,6 +30,10 @@ install(TARGETS surveyor_node
 )
 
 install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(DIRECTORY config
   DESTINATION share/${PROJECT_NAME}
 )
 

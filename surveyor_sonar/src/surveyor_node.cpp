@@ -1,10 +1,12 @@
 #include "surveyor_sonar/surveyor_node.hpp"
 
+#include <algorithm>
 #include <arpa/inet.h>
 #include <cerrno>
 #include <cmath>
 #include <cstring>
 #include <fcntl.h>
+#include <limits>
 #include <poll.h>
 #include <unistd.h>
 
@@ -69,6 +71,7 @@ constexpr uint16_t kNopPacketId = 0;
 constexpr uint16_t kAckPacketId = 1;
 constexpr uint16_t kNackPacketId = 2;
 constexpr uint16_t kSetPingParametersPacketId = 3023;
+constexpr double kPi = 3.14159265358979323846;
 }  // namespace
 
 SurveyorNode::SurveyorNode()
@@ -76,6 +79,7 @@ SurveyorNode::SurveyorNode()
   sock_(-1),
   connected_(false),
   ping_config_sent_(false),
+  frame_id_(this->declare_parameter("frame_id", "sonar_frame")),
   next_connect_attempt_(std::chrono::steady_clock::now()),
   start_mm_(this->declare_parameter("start_mm", 0)),
   end_mm_(this->declare_parameter("end_mm", -10000)),
@@ -85,6 +89,7 @@ SurveyorNode::SurveyorNode()
   enable_atof_data_(this->declare_parameter("enable_atof_data", true)),
   n_range_steps_(this->declare_parameter("n_range_steps", 400)),
   pulse_len_steps_(this->declare_parameter("pulse_len_steps", 1.5)),
+  distance_fov_deg_(this->declare_parameter("distance_fov_deg", 60.0)),
   packets_seen_(0),
   decode_failures_(0),
   published_clouds_(0),
@@ -101,6 +106,8 @@ SurveyorNode::SurveyorNode()
 
     pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
         "sonar/points", 10);
+    distance_pub_ = this->create_publisher<std_msgs::msg::Float32>(
+        "sonar/distance", 10);
 
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(20),
@@ -479,6 +486,7 @@ void SurveyorNode::readSocket()
         std::vector<YZPoint> points;
         if (parseYZ(packet, points))
         {
+            publishDistance(points);
             publishYZ(points);
         }
         else
@@ -532,12 +540,68 @@ void SurveyorNode::readSocket()
     }
 }
 
+void SurveyorNode::publishDistance(const std::vector<YZPoint>& points)
+{
+    if (points.empty())
+    {
+        return;
+    }
+
+    const double clamped_distance_fov_deg =
+        std::clamp(distance_fov_deg_, 0.0, 80.0);
+    const double half_angle_rad =
+        0.5 * clamped_distance_fov_deg * kPi / 180.0;
+
+    float min_distance_m = std::numeric_limits<float>::infinity();
+    size_t accepted_points = 0;
+    for (const auto& point : points)
+    {
+        const float angle_rad = std::atan2(point.y, -point.z);
+        if (std::abs(angle_rad) > half_angle_rad)
+        {
+            continue;
+        }
+
+        const float distance_m = std::hypot(point.y, point.z);
+        if (distance_m < min_distance_m)
+        {
+            min_distance_m = distance_m;
+        }
+        ++accepted_points;
+    }
+
+    if (accepted_points == 0)
+    {
+        RCLCPP_WARN_THROTTLE(
+            this->get_logger(), *this->get_clock(), 2000,
+            "No Surveyor points inside distance_fov_deg=%.1f",
+            clamped_distance_fov_deg);
+        return;
+    }
+
+    if (!std::isfinite(min_distance_m))
+    {
+        return;
+    }
+
+    std_msgs::msg::Float32 distance_msg;
+    distance_msg.data = min_distance_m;
+    distance_pub_->publish(distance_msg);
+
+    RCLCPP_INFO_THROTTLE(
+        this->get_logger(), *this->get_clock(), 2000,
+        "Published Surveyor distance %.3f m on sonar/distance using %zu points inside %.1f deg",
+        min_distance_m,
+        accepted_points,
+        clamped_distance_fov_deg);
+}
+
 void SurveyorNode::publishYZ(const std::vector<YZPoint>& points)
 {
     sensor_msgs::msg::PointCloud2 cloud;
 
     cloud.header.stamp = now();
-    cloud.header.frame_id = "sonar_frame";
+    cloud.header.frame_id = frame_id_;
 
     cloud.height = 1;
     cloud.width = points.size();

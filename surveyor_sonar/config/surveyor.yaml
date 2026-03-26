@@ -1,0 +1,15 @@
+surveyor_node:
+  ros__parameters:
+    ip: "192.168.194.77"
+    port: 62312
+    frame_id: "sonar"
+
+    start_mm: 0
+    end_mm: -6000
+    sos_mps: 1500.0
+    gain_index: -1
+    msec_per_ping: 100
+    enable_atof_data: true
+    n_range_steps: 400
+    pulse_len_steps: 1.5
+    distance_fov_deg: 60.0
