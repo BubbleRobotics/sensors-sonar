@@ -16,7 +16,7 @@ Ping360Sonar::Ping360Sonar(rclcpp::NodeOptions options)
   declareParamDescription("gain", 0, "Sonar gain (0 = low, 1 = normal, 2 = high)", 0, 2);
   declareParamDescription("frequency", 740, "Sonar operating frequency [kHz]", 650, 850);
   declareParamDescription("range_max", 2, "Sonar max range [m]", 1, 50);
-  declareParamDescription("angle_sector", 360, "Scanned angular sector around sonar heading [degrees]. Will oscillate if not 360", 60, 360);
+  declareParamDescription("angle_sector", 360, "Scanned angular sector around sonar heading [degrees]. Will oscillate if not 360", 20, 360);
   declareParamDescription("angle_step", 1, "Sonar angular resolution [degrees]", 1, 20);
   declareParamDescription("image_size", 300, "Output image size [pixels]", 100, 1000, 2);
   declareParamDescription("scan_threshold", 200, "Intensity threshold for LaserScan message", 1, 255);
