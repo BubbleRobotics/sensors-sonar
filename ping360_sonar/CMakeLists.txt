@@ -17,6 +17,7 @@ find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(ping360_sonar_msgs REQUIRED)
 find_package(image_transport REQUIRED)
+# find_package(Eigen3 REQUIRED)
 
 # build BlueRobotics' ping-cpp  standalone    
 add_subdirectory(src)
@@ -35,6 +36,7 @@ ament_target_dependencies(ping360_node rclcpp sensor_msgs ping360_sonar_msgs ima
 # Install
 ament_python_install_package(${PROJECT_NAME})
 install(PROGRAMS src/ping360.py DESTINATION lib/${PROJECT_NAME})
+install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME})
 #install(DIRECTORY python/ping360_sonar DESTINATION lib/${PROJECT_NAME})
 
 install(TARGETS ping360_node ping-cpp
